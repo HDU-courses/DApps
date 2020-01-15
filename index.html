@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mimos Ehereum Library</title>
+  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script language="javascript" type="text/javascript" src="web3.min.js"></script>
+  <script language="javascript" type="text/javascript" src="my_abi.js"></script>
+</head>
+
+<script>
+  let myContract;
+  // Start here
+  window.addEventListener('load', function() {
+
+    if (!ethereum || !ethereum.isMetaMask) {
+      throw new Error('Please install MetaMask.')
+    }
+
+    let currencyAccount;
+    // 检查web3是否已经注入到(Mist/MetaMask)
+    if (ethereum && ethereum.isMetaMask) {
+    // if (typeof web3 !== 'undefined') {
+      // 使用 Mist/MetaMask 的提供者
+      web3js = new Web3(web3.currentProvider);
+      if (web3.currentProvider.isMetaMask == true) {
+        console.log("MetaMask可用")
+      } else {
+        console.log("非MetaMask环境")
+      }
+      console.log("existing web3: provider " + typeof ethereum);
+      // alert("install MetaMask Success!")
+    } else {
+      // 处理用户没安装的情况， 比如显示一个消息
+      // 告诉他们要安装 MetaMask 来使用我们的应用
+      alert("install MetaMask Please!")
+    }
+    ethereum.enable()
+            // Remember to handle the case they reject the request:
+            .catch(function (reason) {
+              if (reason === 'User rejected provider access') {
+                // The user didn't want to sign in!
+              } else {
+                // This shouldn't happen, so you might want to log this...
+                alert('There was an issue signing you in.')
+              }
+            })
+            .then(function(accounts){
+                if (typeof accounts !== 'undefined' ){
+                    console.log(accounts[0])
+                    currencyAccount = accounts[0];
+                }
+            });
+    // 现在你可以启动你的应用并自由访问 Web3.js:
+    // startApp()
+    // Get API version
+    let p1 = document.getElementById("p1");
+    p1.innerHTML = web3.version.api;
+    // Get my MetaMask account
+    let account = document.getElementById("account");
+
+    let  myContractAddress =  "0xfaFB7899b8EF682d33c4BDC310e75Bc91082Ffde ";
+
+    myContract = new web3js.eth.Contract(myABI, myContractAddress);
+    // myContract.events.Transfer({ filter: { _to: "0xF1D5b38C819B9d3ba2a0C7a56Ae41E07345433D1" } , function(error, event){ console.log(event); })
+    //         .on('data', function(event){
+    //           console.log(event); // same results as the optional callback above
+    //         })
+    //         .on('changed', function(event){
+    //           // remove event from local database
+    //         })
+    //         .on('error', console.error);
+
+    myContract.events.NewBoard({
+      // filter: {_to: '0xF1D5b38C819B9d3ba2a0C7a56Ae41E07345433D1'}, // Using an array means OR: e.g. 20 or 23
+      fromBlock: 0
+    }, function(error, event){ console.log(event); })
+            .on('data', function(event){
+              $("#boards").append("<p> "+event.returnValues._name+"</p>")
+              console.log("event-board-data",event.returnValues); // same results as the optional callback above
+            })
+            .on('changed', function(event){
+              console.log("event-board-changed",event);// remove event from local database
+            })
+            .on('error',function (error) {
+              console.log("event-board-error",error);// get Error
+            });
+
+
+    myContract.events.NewArticle({
+      // filter: {_to: '0xF1D5b38C819B9d3ba2a0C7a56Ae41E07345433D1'}, // Using an array means OR: e.g. 20 or 23
+      fromBlock: 0
+    }, function(error, event){ console.log(event); })
+            .on('data', function(event){
+              console.log("event-article-data",event.returnValues); // same results as the optional callback above
+
+               event.returnValues
+
+            })
+            .on('changed', function(event){
+              console.log("event-article-changed",event);// remove event from local database
+            })
+            .on('error',function (error) {
+              console.log("event-article-error",error);// get Error
+            });
+    function  newBoard() {
+      alert("click board")
+    }
+    $('#new_board').click(function(event) {/* Act on the event */
+        let name =  $('#board_name').val();
+        let desc =  $('#board_desc').val();
+        myContract.methods.createBoard(name, desc).send( { from: ethereum.selectedAddress, value: web3.toWei(0.001, 'ether')} )
+      .on("receipt", function(receipt) {
+        $("#p1").text("Successfully created " + receipt + "!");
+      })
+      .on("error", function(error) {
+        // Do something to alert the user their transaction has failed
+        $("#p1").text(error);
+      });
+    });
+
+
+  })
+</script>
+
+    <h2>Web3 API version</h2>
+    <p id="p1"></p>
+    <h2>My Account</h2>
+    <p id="account"></p>
+
+    <input id="board_name" value="blockchain">
+    <input id="board_desc" value="blockchain">
+    <button type="button" id="new_board" οnclick="test()">创建</button>
+
+
+    <div id="boards">   </div>
+
+</body>
+
+</html>
